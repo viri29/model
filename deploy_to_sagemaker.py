@@ -5,10 +5,14 @@ from sagemaker import get_execution_role
 import os
 import zipfile
 import shutil
+from dotenv import load_dotenv
+load_dotenv()
+os.environ["AWS_DEFAULT_REGION"] = "us-west-2"
+
 
 def create_model_archive():
     """Create a zip file containing the model artifacts for SageMaker"""
-    
+    print("Creating model artifacts...")
     # Create a temporary directory for the model artifacts
     model_artifacts_dir = 'model_artifacts'
     os.makedirs(model_artifacts_dir, exist_ok=True)
@@ -24,23 +28,21 @@ def create_model_archive():
         return None
     
     # Create zip file
-    zip_filename = 'model_artifacts.zip'
-    with zipfile.ZipFile(zip_filename, 'w', zipfile.ZIP_DEFLATED) as zipf:
-        for root, dirs, files in os.walk(model_artifacts_dir):
-            for file in files:
-                file_path = os.path.join(root, file)
-                arcname = os.path.relpath(file_path, model_artifacts_dir)
-                zipf.write(file_path, arcname)
-    
+    import tarfile
+
+    tar_filename = 'model_artifacts.tar.gz'
+    with tarfile.open(tar_filename, "w:gz") as tar:
+        tar.add(model_artifacts_dir, arcname='.')
+
     # Clean up temporary directory
     shutil.rmtree(model_artifacts_dir)
-    
-    print(f"Model artifacts created: {zip_filename}")
-    return zip_filename
+
+    print(f"Model artifacts created: {tar_filename}")
+    return tar_filename
 
 def deploy_to_sagemaker(model_artifacts_path, role_arn=None):
     """Deploy the model to SageMaker"""
-    
+    print("Deploying model to SageMaker...")
     # Initialize SageMaker session
     session = sagemaker.Session()
     
@@ -77,7 +79,8 @@ def deploy_to_sagemaker(model_artifacts_path, role_arn=None):
     print("Deploying model to SageMaker...")
     predictor = pytorch_model.deploy(
         initial_instance_count=1,
-        instance_type='ml.m5.large'
+        instance_type='ml.m5.large',
+        timeout=300
     )
     
     print(f"Model deployed successfully!")
@@ -87,7 +90,6 @@ def deploy_to_sagemaker(model_artifacts_path, role_arn=None):
 
 def test_endpoint(predictor):
     """Test the deployed endpoint"""
-    
     # Sample input data
     sample_features = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
     
@@ -135,10 +137,10 @@ def main():
     print("- S3 permissions")
     
     # Uncomment the following lines to actually deploy
-    # predictor = deploy_to_sagemaker(model_artifacts_path)
-    # if predictor:
-    #     test_endpoint(predictor)
-    
+    predictor = deploy_to_sagemaker(model_artifacts_path, role_arn="arn:aws:iam::202712152316:role/sagemaker-deployment")
+    if predictor:
+        test_endpoint(predictor)
+
     print("\nDeployment script ready!")
     print("To deploy, uncomment the deployment lines in the script.")
 
