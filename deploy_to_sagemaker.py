@@ -15,6 +15,11 @@ def create_model_archive():
     print("Creating model artifacts...")
     # Create a temporary directory for the model artifacts
     model_artifacts_dir = 'model_artifacts'
+    
+    # Remove existing model_artifacts directory if it exists
+    if os.path.exists(model_artifacts_dir):
+        shutil.rmtree(model_artifacts_dir)
+    
     os.makedirs(model_artifacts_dir, exist_ok=True)
     
     # Copy the inference code
@@ -35,7 +40,7 @@ def create_model_archive():
         tar.add(model_artifacts_dir, arcname='.')
 
     # Clean up temporary directory
-    shutil.rmtree(model_artifacts_dir)
+    #shutil.rmtree(model_artifacts_dir)
 
     print(f"Model artifacts created: {tar_filename}")
     return tar_filename
