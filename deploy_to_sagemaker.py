@@ -3,9 +3,11 @@ import sagemaker
 from sagemaker.pytorch import PyTorchModel
 from sagemaker import get_execution_role
 import os
-import zipfile
 import shutil
 from dotenv import load_dotenv
+from sagemaker.serializers import JSONSerializer
+from sagemaker.deserializers import JSONDeserializer
+
 load_dotenv()
 os.environ["AWS_DEFAULT_REGION"] = "us-west-2"
 
@@ -88,7 +90,7 @@ def deploy_to_sagemaker(model_artifacts_path, role_arn=None):
     print("Deploying model to SageMaker...")
     predictor = pytorch_model.deploy(
         initial_instance_count=1,
-        instance_type='ml.m5.large',
+        instance_type='ml.t2.medium',
         timeout=300
     )
     
@@ -101,11 +103,14 @@ def test_endpoint(predictor):
     """Test the deployed endpoint"""
     # Sample input data
     sample_features = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
+    predictor.serializer = JSONSerializer()
+    predictor.deserializer = JSONDeserializer()
     
     # Create input data
     input_data = {
         "features": sample_features
     }
+
     
     print("\nTesting deployed endpoint...")
     print(f"Input: {input_data}")
@@ -148,6 +153,7 @@ def main():
     # Uncomment the following lines to actually deploy
     predictor = deploy_to_sagemaker(model_artifacts_path, role_arn="arn:aws:iam::202712152316:role/sagemaker-deployment")
     if predictor:
+        print("Testing endpoint...")
         test_endpoint(predictor)
 
     print("\nDeployment script ready!")

@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SageMaker Model Frontend</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .input-group {
+            margin: 10px 0;
+        }
+        input[type="number"] {
+            width: 80px;
+            padding: 5px;
+            margin: 2px;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 10px;
+            background-color: #f8f9fa;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <h1>SageMaker Model Prediction</h1>
+    
+    <div>
+        <h3>Input Features (10 values):</h3>
+        <div id="feature-inputs">
+            <!-- Feature inputs will be generated here -->
+        </div>
+        
+        <button onclick="makePrediction()">Get Prediction</button>
+    </div>
+    
+    <div id="result" class="result" style="display: none;">
+        <h3>Prediction Result:</h3>
+        <p id="prediction-value"></p>
+    </div>
+
+    <script>
+        // Generate 10 input fields for features
+        const container = document.getElementById('feature-inputs');
+        for (let i = 0; i < 10; i++) {
+            const div = document.createElement('div');
+            div.className = 'input-group';
+            div.innerHTML = `
+                <label>Feature ${i + 1}:</label>
+                <input type="number" id="feature-${i}" value="${(i + 1) * 0.1}" step="0.1">
+            `;
+            container.appendChild(div);
+        }
+
+        async function makePrediction() {
+            // Collect features
+            const features = [];
+            for (let i = 0; i < 10; i++) {
+                const value = parseFloat(document.getElementById(`feature-${i}`).value);
+                features.push(value);
+            }
+
+            // Replace with your actual API Gateway URL
+            const apiUrl = 'YOUR_API_GATEWAY_URL';
+            
+            try {
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        features: features
+                    })
+                });
+
+                const result = await response.json();
+                
+                if (response.ok) {
+                    document.getElementById('prediction-value').textContent = 
+                        `Prediction: ${result.prediction}`;
+                    document.getElementById('result').style.display = 'block';
+                } else {
+                    document.getElementById('prediction-value').textContent = 
+                        `Error: ${result.error}`;
+                    document.getElementById('result').style.display = 'block';
+                }
+            } catch (error) {
+                document.getElementById('prediction-value').textContent = 
+                    `Error: ${error.message}`;
+                document.getElementById('result').style.display = 'block';
+            }
+        }
+    </script>
+</body>
+</html> 
