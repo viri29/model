@@ -35,27 +35,44 @@ def model_fn(model_dir):
     Load the PyTorch model from the model_dir.
     This function is called by SageMaker to load the model.
     """
-    logger.info("Loading model from directory: %s", model_dir)
-    
-    # Load model configuration
-    config_path = os.path.join(model_dir, 'model_config.json')
-    with open(config_path, 'r') as f:
-        config = json.load(f)
-    
-    # Create model instance
-    model = SimpleNet(
-        input_size=config['input_size'],
-        hidden_size=config['hidden_size'],
-        output_size=config['output_size']
-    )
-    
-    # Load model weights
-    model_path = os.path.join(model_dir, 'model.pth')
-    model.load_state_dict(torch.load(model_path, map_location='cpu'))
-    model.eval()
-    
-    logger.info("Model loaded successfully")
-    return model
+    try:
+        logger.info("Loading model from directory: %s", model_dir)
+        logger.info("Directory contents: %s", os.listdir(model_dir))
+        
+        # Load model configuration
+        config_path = os.path.join(model_dir, 'model_config.json')
+        if not os.path.exists(config_path):
+            raise FileNotFoundError(f"Model configuration file not found: {config_path}")
+            
+        with open(config_path, 'r') as f:
+            config = json.load(f)
+        logger.info("Model config loaded: %s", config)
+        
+        # Create model instance
+        model = SimpleNet(
+            input_size=config['input_size'],
+            hidden_size=config['hidden_size'],
+            output_size=config['output_size']
+        )
+        logger.info("Model instance created")
+        
+        # Load model weights
+        model_path = os.path.join(model_dir, 'model.pth')
+        if not os.path.exists(model_path):
+            raise FileNotFoundError(f"Model weights file not found: {model_path}")
+            
+        model.load_state_dict(torch.load(model_path, map_location='cpu'))
+        model.eval()
+        
+        logger.info("Model loaded successfully")
+        return model
+        
+    except Exception as e:
+        logger.error("Error loading model: %s", str(e))
+        logger.error("Model directory: %s", model_dir)
+        if os.path.exists(model_dir):
+            logger.error("Directory contents: %s", os.listdir(model_dir))
+        raise e
 
 def input_fn(request_body, request_content_type):
     """

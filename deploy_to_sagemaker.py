@@ -11,23 +11,28 @@ os.environ["AWS_DEFAULT_REGION"] = "us-west-2"
 
 
 def create_model_archive():
-    """Create a zip file containing the model artifacts for SageMaker"""
+    """Create a tar.gz file containing the model artifacts for SageMaker"""
     print("Creating model artifacts...")
     # Create a temporary directory for the model artifacts
     model_artifacts_dir = 'model_artifacts'
     os.makedirs(model_artifacts_dir, exist_ok=True)
     
-    # Copy the inference code
-    shutil.copytree('simple_inference', os.path.join(model_artifacts_dir, 'simple_inference'))
+    # Copy the inference code to the root of model artifacts
+    shutil.copytree('simple_inference/code', os.path.join(model_artifacts_dir, 'code'))
     
-    # Copy the trained model
+    # Copy the trained model files to the root
     if os.path.exists('./model'):
-        shutil.copytree('./model', os.path.join(model_artifacts_dir, 'model'))
+        # Copy individual model files to root instead of nested directory
+        for file in os.listdir('./model'):
+            src_file = os.path.join('./model', file)
+            dst_file = os.path.join(model_artifacts_dir, file)
+            if os.path.isfile(src_file):
+                shutil.copy2(src_file, dst_file)
     else:
         print("Warning: Model directory not found. Please run 'python simple_model.py' first.")
         return None
     
-    # Create zip file
+    # Create tar.gz file
     import tarfile
 
     tar_filename = 'model_artifacts.tar.gz'
@@ -70,7 +75,6 @@ def deploy_to_sagemaker(model_artifacts_path, role_arn=None):
         model_data=model_data,
         role=role_arn,
         entry_point='inference.py',
-        source_dir='simple_inference/code',
         framework_version='1.9.0',
         py_version='py38'
     )
